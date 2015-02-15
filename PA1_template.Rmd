@@ -7,19 +7,94 @@ output:
 
 
 ## Loading and preprocessing the data
-
-
+```{r}
+setwd("~/data/coursera/5RR/week 2")
+library(plyr); library(dplyr)
+library(Hmisc)
+dat0 <- read.csv("../week 2/activity.csv")
+nrow(dat0)
+n_distinct(dat0$date)
+```
 
 ## What is mean total number of steps taken per day?
-
-
-
+1.
+```{r}
+dat1 <- dat0 %>%
+    filter(is.na(steps) == FALSE) %>%
+    group_by(date) %>%
+    mutate(sum = sum(steps))
+dat2 <- dat1[!duplicated(dat1$sum),]
+mean(dat2$sum)
+hist(dat2$sum)
+```
+2.
+```{r}
+summary(dat2$sum)[c(3,4)]
+```
 ## What is the average daily activity pattern?
-
-
-
+1.
+```{r}
+dat3 <- dat0 %>%
+    group_by(interval) %>%
+    mutate(average = mean(steps, na.rm=T))
+dat4 <- dat3[!duplicated(dat3$average),]
+library(ggplot2)
+ggplot(dat4, aes(x=interval, y=average)) + geom_line()
+```
+2.
+```{r}
+filter(dat4, average >200)[,3]
+```
 ## Imputing missing values
-
-
+1.
+```{r}
+dat5 <- na.omit(dat0)
+nrow(dat0) - nrow(dat5)
+```
+2.
+```{r}
+dat6 <- as.data.frame(dat3)
+for (i in 1:length(dat6[,1])) {
+    if (is.na(dat6$steps[i]) == T) {
+        dat6$steps[i] <- dat6$average[i]
+    }
+}
+```
+3.
+```{r}
+dat6 <- select(dat6, steps, date, interval)
+```
+4.
+```{r}
+dat7 <- dat6 %>%
+    group_by(date) %>%
+    mutate(sum = sum(steps))
+dat8 <- dat7[!duplicated(dat7$sum),]
+hist(dat8$sum)
+summary(dat8$sum)[c(3,4)]
+```
+Yes
 
 ## Are there differences in activity patterns between weekdays and weekends?
+1.
+```{r}
+dat6$date2 <- as.Date(dat6$date,"%Y-%m-%d")
+dat6$day <- weekdays(dat6$date2)
+dat6 <- as.data.frame(dat6)
+for (i in 1:length(dat6[,1])) {
+    if (dat6$day[i] %in% c("Saturday","Sunday")) {
+        dat6$day2[i] <- "weekend"
+    } else {
+        dat6$day2[i] <- "weekday"
+    }
+}
+```
+2.
+```{r}
+dat7 <- dat6 %>%
+    group_by(interval,day2) %>%
+    mutate(average = mean(steps)) %>%
+    select(date, interval, day2, average)
+dat8 <- dat7[!duplicated(dat7[,c('interval','day2')]),]
+ggplot(dat8, aes(x=interval, y=average)) + geom_line() + facet_wrap(~day2, nrow=2)
+```
